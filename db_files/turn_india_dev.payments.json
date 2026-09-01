@@ -1,0 +1,90 @@
+[{
+  "_id": {
+    "$oid": "6a900ad2745229da26bbfdff"
+  },
+  "transactionId": "TXN-1001",
+  "amount": 249.99,
+  "currency": "USD",
+  "status": "success",
+  "active": true,
+  "user": "john@example.com",
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-08-27T10:00:50.886Z"
+  },
+  "updatedAt": {
+    "$date": "2026-08-27T10:00:50.886Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a900ad2745229da26bbfe00"
+  },
+  "transactionId": "TXN-1002",
+  "amount": 89.5,
+  "currency": "USD",
+  "status": "pending",
+  "active": true,
+  "user": "sara@example.com",
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-08-27T10:00:50.886Z"
+  },
+  "updatedAt": {
+    "$date": "2026-08-27T10:00:50.886Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a900ad2745229da26bbfe01"
+  },
+  "transactionId": "TXN-1003",
+  "amount": 499,
+  "currency": "USD",
+  "status": "failed",
+  "active": false,
+  "user": "amit@example.com",
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-08-27T10:00:50.886Z"
+  },
+  "updatedAt": {
+    "$date": "2026-08-27T10:00:50.886Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a900ad2745229da26bbfe02"
+  },
+  "transactionId": "TXN-1004",
+  "amount": 150,
+  "currency": "USD",
+  "status": "refunded",
+  "active": false,
+  "user": "lisa@example.com",
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-08-27T10:00:50.886Z"
+  },
+  "updatedAt": {
+    "$date": "2026-08-27T10:00:50.886Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a900ad2745229da26bbfe03"
+  },
+  "transactionId": "TXN-1005",
+  "amount": 320.75,
+  "currency": "USD",
+  "status": "success",
+  "active": true,
+  "user": "kevin@example.com",
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-08-27T10:00:50.886Z"
+  },
+  "updatedAt": {
+    "$date": "2026-08-27T10:00:50.886Z"
+  }
+}]

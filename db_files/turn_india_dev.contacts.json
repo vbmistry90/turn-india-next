@@ -1,0 +1,51 @@
+[{
+  "_id": {
+    "$oid": "6a900ad2745229da26bbfe06"
+  },
+  "name": "Meera Kapoor",
+  "email": "meera@example.com",
+  "subject": "Partnership inquiry",
+  "message": "Interested in partnering on your recycling program.",
+  "status": "read",
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-08-27T10:00:50.890Z"
+  },
+  "updatedAt": {
+    "$date": "2026-08-27T12:25:50.623Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a900ad2745229da26bbfe07"
+  },
+  "name": "David Lin",
+  "email": "david@example.com",
+  "subject": "Bug report",
+  "message": "The dashboard chart doesn't load on Safari.",
+  "status": "read",
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-08-27T10:00:50.890Z"
+  },
+  "updatedAt": {
+    "$date": "2026-08-27T10:00:50.890Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a900ad2745229da26bbfe08"
+  },
+  "name": "Fatima Noor",
+  "email": "fatima@example.com",
+  "subject": "General question",
+  "message": "Do you offer bulk waste pickup for offices?",
+  "status": "resolved",
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-08-27T10:00:50.890Z"
+  },
+  "updatedAt": {
+    "$date": "2026-08-27T10:00:50.890Z"
+  }
+}]
