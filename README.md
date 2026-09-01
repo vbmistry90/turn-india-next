@@ -9,7 +9,7 @@ A full-stack admin dashboard built with **Next.js**, **Tailwind CSS**, and **Mon
 | # | Feature | Details |
 |---|---------|---------|
 | 1 | **Login & Registration** | JWT-based auth, `httpOnly` cookies, **Remember Me** (persistent vs. session cookie) |
-| 2 | **Dashboard (Eco System)** | Charts for **Toxic Materials** & **Energy Waste**, monthly trend line chart, summary stat cards |
+| 2 | **Dashboard (Turn-India System)** | Charts for **Toxic Materials** & **Energy Waste**, monthly trend line chart, summary stat cards |
 | 3 | **Project Videos** | Upload to **Cloudinary**, fields: name, url, category, description, author, status, priority, time — paginated table with search |
 | 4 | **Payments** | Transaction history table: transaction ID, amount, status, active toggle, user — paginated + filterable, revenue summary |
 | 5 | **Contact Inquiries** | Public inquiry form (`/contact`) + admin list/detail/status management |
