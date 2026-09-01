@@ -2,6 +2,7 @@ node_modules
 db_files
 .next
 out
+.env
 .env.local
 npm-debug.log*
 .DS_Store
