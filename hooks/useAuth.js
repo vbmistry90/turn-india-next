@@ -1,19 +1,10 @@
 import useSWR from "swr";
 import { useRouter } from "next/router";
-
-const fetcher = (url) =>
-  fetch(url, { credentials: "include" }).then(async (res) => {
-    if (!res.ok) {
-      const err = new Error("Not authenticated");
-      err.status = res.status;
-      throw err;
-    }
-    return res.json();
-  });
+import { timedFetcher, timedFetch } from "@/lib/apiClient";
 
 export default function useAuth({ redirectOnFail = false } = {}) {
   const router = useRouter();
-  const { data, error, isLoading, mutate } = useSWR("/api/auth/me", fetcher, {
+  const { data, error, isLoading, mutate } = useSWR("/api/auth/me", timedFetcher, {
     shouldRetryOnError: false,
     revalidateOnFocus: false,
   });
@@ -23,7 +14,7 @@ export default function useAuth({ redirectOnFail = false } = {}) {
   }
 
   async function logout() {
-    await fetch("/api/auth/logout", { method: "POST" });
+    await timedFetch("/api/auth/logout", { method: "POST" });
     mutate(undefined, false);
     router.push("/login");
   }

@@ -1,5 +1,5 @@
 {
-  "name": "turn-india-admin-dashboard",
+  "name": "eco-admin-dashboard",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -17,6 +17,10 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.5.1",
     "next": "14.2.35",
+    "nodemailer": "^6.9.14",
+    "nprogress": "^0.2.0",
+    "otplib": "^12.0.1",
+    "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-icons": "^5.2.1",

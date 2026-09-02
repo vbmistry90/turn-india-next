@@ -8,7 +8,7 @@
  * Requires MONGODB_URI to be set in .env.local (or .env)
  */
 require("dotenv").config({ path: ".env.local" });
-require("dotenv").config(); // fallback to .env if .env.local doesn't have it
+require("dotenv").config();
 
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
@@ -25,7 +25,11 @@ const UserSchema = new mongoose.Schema(
     name: String,
     email: { type: String, unique: true, lowercase: true },
     password: String,
-    role: { type: String, default: "admin" },
+    phone: String,
+    role: { type: String, default: "editor" },
+    isActive: { type: Boolean, default: true },
+    twoFactorEnabled: { type: Boolean, default: false },
+    twoFactorMethod: { type: String, default: null },
   },
   { timestamps: true }
 );
@@ -79,26 +83,76 @@ const EcoStatSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+const SettingsSchema = new mongoose.Schema(
+  {
+    key: { type: String, default: "site_appearance", unique: true },
+    themeColor: { type: String, default: "#16a34a" },
+    fontFamily: { type: String, default: "Inter" },
+    baseTextSize: { type: String, default: "md" },
+    borderRadius: { type: String, default: "md" },
+    darkMode: { type: Boolean, default: false },
+  },
+  { timestamps: true }
+);
+
+const HealthEventSchema = new mongoose.Schema(
+  {
+    monitorId: String,
+    monitorName: String,
+    monitorUrl: String,
+    status: { type: String, default: "unknown" },
+    statusCode: String,
+    reason: String,
+    raw: mongoose.Schema.Types.Mixed,
+  },
+  { timestamps: true }
+);
+
 const User = mongoose.model("User", UserSchema);
 const Video = mongoose.model("Video", VideoSchema);
 const Payment = mongoose.model("Payment", PaymentSchema);
 const Contact = mongoose.model("Contact", ContactSchema);
 const EcoStat = mongoose.model("EcoStat", EcoStatSchema);
+const Settings = mongoose.model("Settings", SettingsSchema);
+const HealthEvent = mongoose.model("HealthEvent", HealthEventSchema);
 
 async function seed() {
   console.log("🔌 Connecting to MongoDB...");
   await mongoose.connect(MONGODB_URI);
   console.log("✅ Connected");
 
-  // --- Demo admin user ---
+  // --- Demo users (admin + editor, to demo role management) ---
   const adminEmail = "admin@ecoadmin.com";
   const existingAdmin = await User.findOne({ email: adminEmail });
   if (!existingAdmin) {
     const hashed = await bcrypt.hash("Admin@123", 10);
-    await User.create({ name: "Demo Admin", email: adminEmail, password: hashed, role: "admin" });
+    await User.create({
+      name: "Demo Admin",
+      email: adminEmail,
+      password: hashed,
+      phone: "+15550001234",
+      role: "admin",
+      isActive: true,
+    });
     console.log(`👤 Created demo admin -> email: ${adminEmail} / password: Admin@123`);
   } else {
     console.log("👤 Demo admin already exists, skipping");
+  }
+
+  const editorEmail = "editor@ecoadmin.com";
+  const existingEditor = await User.findOne({ email: editorEmail });
+  if (!existingEditor) {
+    const hashed = await bcrypt.hash("Editor@123", 10);
+    await User.create({
+      name: "Demo Editor",
+      email: editorEmail,
+      password: hashed,
+      role: "editor",
+      isActive: true,
+    });
+    console.log(`👤 Created demo editor -> email: ${editorEmail} / password: Editor@123`);
+  } else {
+    console.log("👤 Demo editor already exists, skipping");
   }
 
   // --- Videos ---
@@ -176,22 +230,10 @@ async function seed() {
     const stats = [];
     months.forEach((month, i) => {
       toxicLabels.forEach((label, j) => {
-        stats.push({
-          category: "toxic_materials",
-          label,
-          value: 40 + i * 5 + j * 12,
-          unit: "kg",
-          month,
-        });
+        stats.push({ category: "toxic_materials", label, value: 40 + i * 5 + j * 12, unit: "kg", month });
       });
       energyLabels.forEach((label, j) => {
-        stats.push({
-          category: "energy_waste",
-          label,
-          value: 500 + i * 40 + j * 90,
-          unit: "kWh",
-          month,
-        });
+        stats.push({ category: "energy_waste", label, value: 500 + i * 40 + j * 90, unit: "kWh", month });
       });
     });
 
@@ -201,8 +243,44 @@ async function seed() {
     console.log("🌱 Eco-stats already exist, skipping");
   }
 
+  // --- Appearance settings (singleton) ---
+  const existingSettings = await Settings.findOne({ key: "site_appearance" });
+  if (!existingSettings) {
+    await Settings.create({ key: "site_appearance" });
+    console.log("🎨 Seeded default appearance settings");
+  } else {
+    console.log("🎨 Appearance settings already exist, skipping");
+  }
+
+  // --- Sample health events ---
+  const healthCount = await HealthEvent.countDocuments();
+  if (healthCount === 0) {
+    await HealthEvent.insertMany([
+      {
+        monitorId: "sample-1",
+        monitorName: "Main Website",
+        monitorUrl: "https://example.com",
+        status: "down",
+        statusCode: "1",
+        reason: "Connection timeout",
+      },
+      {
+        monitorId: "sample-1",
+        monitorName: "Main Website",
+        monitorUrl: "https://example.com",
+        status: "up",
+        statusCode: "2",
+        reason: "Back online",
+      },
+    ]);
+    console.log("💓 Seeded sample health events");
+  } else {
+    console.log("💓 Health events already exist, skipping");
+  }
+
   console.log("\n✅ Seed complete!");
-  console.log("   Login with: admin@ecoadmin.com / Admin@123\n");
+  console.log("   Admin login:  admin@ecoadmin.com / Admin@123");
+  console.log("   Editor login: editor@ecoadmin.com / Editor@123\n");
 
   await mongoose.disconnect();
   process.exit(0);

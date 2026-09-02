@@ -31,3 +31,17 @@ html, body {
 .badge {
   @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
 }
+
+/* --- Page-change progress bar (nprogress) --- */
+#nprogress .bar {
+  background: var(--brand-color, #16a34a) !important;
+  height: 3px !important;
+}
+
+#nprogress .peg {
+  box-shadow: 0 0 10px var(--brand-color, #16a34a), 0 0 5px var(--brand-color, #16a34a) !important;
+}
+
+#nprogress .spinner {
+  display: none !important;
+}

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Head from "next/head";
 import { MdEco, MdCheckCircle } from "react-icons/md";
+import { timedFetch } from "@/lib/apiClient";
 
 const emptyForm = { name: "", email: "", phone: "", subject: "", message: "" };
 
@@ -20,7 +21,7 @@ export default function ContactPage() {
     setError("");
     setLoading(true);
 
-    const res = await fetch("/api/contacts", {
+    const res = await timedFetch("/api/contacts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(form),
@@ -41,13 +42,13 @@ export default function ContactPage() {
   return (
     <>
       <Head>
-        <title>Contact Us · Turn-India Admin</title>
+        <title>Contact Us · TurnIndia</title>
       </Head>
       <div className="min-h-screen bg-ink-50 flex items-center justify-center p-4">
         <div className="w-full max-w-lg">
           <div className="flex items-center justify-center gap-2 mb-6 text-ink-800">
             <MdEco size={28} className="text-primary-600" />
-            <span className="text-xl font-semibold">Turn-India Admin</span>
+            <span className="text-xl font-semibold">TurnIndia Admin</span>
           </div>
 
           <div className="card">

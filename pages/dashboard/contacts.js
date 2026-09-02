@@ -4,15 +4,20 @@ import DashboardLayout from "@/components/DashboardLayout";
 import PaginatedTable from "@/components/PaginatedTable";
 import StatusBadge from "@/components/StatusBadge";
 import Modal from "@/components/Modal";
-import { MdSearch, MdVisibility, MdDelete } from "react-icons/md";
+import { MdSearch, MdVisibility, MdDelete, MdEdit } from "react-icons/md";
+import { timedFetcher, timedFetch } from "@/lib/apiClient";
 
-const fetcher = (url) => fetch(url, { credentials: "include" }).then((r) => r.json());
+const fetcher = timedFetcher;
 
 export default function ContactsPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const [selected, setSelected] = useState(null);
+  const [viewing, setViewing] = useState(null);
+  const [editing, setEditing] = useState(null);
+  const [editForm, setEditForm] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   const query = new URLSearchParams({ page, limit: 8, search, status: statusFilter }).toString();
   const { data, isLoading, mutate } = useSWR(`/api/contacts?${query}`, fetcher);
@@ -21,9 +26,9 @@ export default function ContactsPage() {
   const pagination = data?.pagination || { page: 1, totalPages: 1, total: 0, limit: 8 };
 
   async function openInquiry(row) {
-    setSelected(row);
+    setViewing(row);
     if (row.status === "new") {
-      await fetch(`/api/contacts/${row._id}`, {
+      await timedFetch(`/api/contacts/${row._id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "read" }),
@@ -32,19 +37,60 @@ export default function ContactsPage() {
     }
   }
 
+  function openEdit(row) {
+    setEditing(row);
+    setEditForm({
+      name: row.name,
+      email: row.email,
+      phone: row.phone || "",
+      subject: row.subject || "",
+      message: row.message,
+      status: row.status,
+    });
+    setError("");
+  }
+
+  function handleEditChange(e) {
+    const { name, value } = e.target;
+    setEditForm((prev) => ({ ...prev, [name]: value }));
+  }
+
+  async function handleEditSubmit(e) {
+    e.preventDefault();
+    setSaving(true);
+    setError("");
+
+    const res = await timedFetch(`/api/contacts/${editing._id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(editForm),
+    });
+    const result = await res.json();
+
+    if (!res.ok || !result.success) {
+      setError(result.message || "Failed to update inquiry");
+      setSaving(false);
+      return;
+    }
+
+    setSaving(false);
+    setEditing(null);
+    mutate();
+  }
+
   async function markResolved(id) {
-    await fetch(`/api/contacts/${id}`, {
+    await timedFetch(`/api/contacts/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: "resolved" }),
     });
-    setSelected(null);
+    setViewing(null);
     mutate();
   }
 
   async function handleDelete(id) {
     if (!confirm("Delete this inquiry?")) return;
-    await fetch(`/api/contacts/${id}`, { method: "DELETE" });
+    await timedFetch(`/api/contacts/${id}`, { method: "DELETE" });
     mutate();
   }
 
@@ -64,13 +110,16 @@ export default function ContactsPage() {
     },
     {
       key: "actions",
-      label: "",
+      label: "Actions",
       render: (row) => (
-        <div className="flex items-center gap-2">
-          <button onClick={() => openInquiry(row)} className="text-primary-600 hover:text-primary-800">
+        <div className="flex items-center gap-3">
+          <button onClick={() => openInquiry(row)} className="text-ink-500 hover:text-ink-800" title="View">
             <MdVisibility size={18} />
           </button>
-          <button onClick={() => handleDelete(row._id)} className="text-red-500 hover:text-red-700">
+          <button onClick={() => openEdit(row)} className="text-primary-600 hover:text-primary-800" title="Edit">
+            <MdEdit size={18} />
+          </button>
+          <button onClick={() => handleDelete(row._id)} className="text-red-500 hover:text-red-700" title="Delete">
             <MdDelete size={18} />
           </button>
         </div>
@@ -119,32 +168,81 @@ export default function ContactsPage() {
         />
       </div>
 
-      <Modal open={Boolean(selected)} onClose={() => setSelected(null)} title="Inquiry Details">
-        {selected && (
+      {/* View modal */}
+      <Modal open={Boolean(viewing)} onClose={() => setViewing(null)} title="Inquiry Details">
+        {viewing && (
           <div className="space-y-3 text-sm">
             <div>
               <p className="text-ink-400 text-xs uppercase font-medium">From</p>
-              <p className="text-ink-800 font-medium">{selected.name}</p>
-              <p className="text-ink-500">{selected.email}</p>
-              {selected.phone && <p className="text-ink-500">{selected.phone}</p>}
+              <p className="text-ink-800 font-medium">{viewing.name}</p>
+              <p className="text-ink-500">{viewing.email}</p>
+              {viewing.phone && <p className="text-ink-500">{viewing.phone}</p>}
             </div>
             <div>
               <p className="text-ink-400 text-xs uppercase font-medium">Subject</p>
-              <p className="text-ink-800">{selected.subject}</p>
+              <p className="text-ink-800">{viewing.subject}</p>
             </div>
             <div>
               <p className="text-ink-400 text-xs uppercase font-medium">Message</p>
-              <p className="text-ink-700 whitespace-pre-wrap">{selected.message}</p>
+              <p className="text-ink-700 whitespace-pre-wrap">{viewing.message}</p>
             </div>
             <div className="flex items-center justify-between pt-2">
-              <StatusBadge value={selected.status} />
-              {selected.status !== "resolved" && (
-                <button onClick={() => markResolved(selected._id)} className="btn-primary">
+              <StatusBadge value={viewing.status} />
+              {viewing.status !== "resolved" && (
+                <button onClick={() => markResolved(viewing._id)} className="btn-primary">
                   Mark as Resolved
                 </button>
               )}
             </div>
           </div>
+        )}
+      </Modal>
+
+      {/* Edit modal */}
+      <Modal open={Boolean(editing)} onClose={() => setEditing(null)} title="Edit Inquiry">
+        {editForm && (
+          <form onSubmit={handleEditSubmit} className="space-y-4">
+            {error && (
+              <div className="rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-2">
+                {error}
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-ink-700 mb-1">Name</label>
+                <input name="name" required className="input-field" value={editForm.name} onChange={handleEditChange} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-ink-700 mb-1">Email</label>
+                <input type="email" name="email" required className="input-field" value={editForm.email} onChange={handleEditChange} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-ink-700 mb-1">Phone</label>
+                <input name="phone" className="input-field" value={editForm.phone} onChange={handleEditChange} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-ink-700 mb-1">Status</label>
+                <select name="status" className="input-field" value={editForm.status} onChange={handleEditChange}>
+                  <option value="new">New</option>
+                  <option value="read">Read</option>
+                  <option value="resolved">Resolved</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-ink-700 mb-1">Subject</label>
+              <input name="subject" className="input-field" value={editForm.subject} onChange={handleEditChange} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-ink-700 mb-1">Message</label>
+              <textarea name="message" rows={4} required className="input-field" value={editForm.message} onChange={handleEditChange} />
+            </div>
+            <button type="submit" disabled={saving} className="btn-primary w-full">
+              {saving ? "Saving..." : "Save Changes"}
+            </button>
+          </form>
         )}
       </Modal>
     </DashboardLayout>

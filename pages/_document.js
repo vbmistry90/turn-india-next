@@ -4,7 +4,7 @@ export default function Document() {
   return (
     <Html lang="en">
       <Head>
-        <meta name="description" content="Turn-India Admin Dashboard — manage project videos, payments and inquiries." />
+        <meta name="description" content="Turn India Admin Dashboard — manage project videos, payments and inquiries." />
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <body>

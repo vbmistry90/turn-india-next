@@ -4,9 +4,10 @@ import DashboardLayout from "@/components/DashboardLayout";
 import PaginatedTable from "@/components/PaginatedTable";
 import StatusBadge from "@/components/StatusBadge";
 import Modal from "@/components/Modal";
-import { MdAdd, MdSearch } from "react-icons/md";
+import { MdAdd, MdSearch, MdEdit, MdVisibility, MdDelete } from "react-icons/md";
+import { timedFetcher, timedFetch } from "@/lib/apiClient";
 
-const fetcher = (url) => fetch(url, { credentials: "include" }).then((r) => r.json());
+const fetcher = timedFetcher;
 
 const emptyForm = {
   transactionId: "",
@@ -22,6 +23,8 @@ export default function PaymentsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [viewing, setViewing] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -38,13 +41,37 @@ export default function PaymentsPage() {
     setForm((prev) => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
   }
 
+  function openCreateModal() {
+    setEditingId(null);
+    setForm(emptyForm);
+    setError("");
+    setModalOpen(true);
+  }
+
+  function openEditModal(row) {
+    setEditingId(row._id);
+    setForm({
+      transactionId: row.transactionId,
+      amount: row.amount,
+      currency: row.currency || "USD",
+      status: row.status,
+      active: row.active,
+      user: row.user,
+    });
+    setError("");
+    setModalOpen(true);
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
     setSaving(true);
 
-    const res = await fetch("/api/payments", {
-      method: "POST",
+    const url = editingId ? `/api/payments/${editingId}` : "/api/payments";
+    const method = editingId ? "PATCH" : "POST";
+
+    const res = await timedFetch(url, {
+      method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...form, amount: parseFloat(form.amount) }),
     });
@@ -58,16 +85,23 @@ export default function PaymentsPage() {
 
     setModalOpen(false);
     setForm(emptyForm);
+    setEditingId(null);
     setSaving(false);
     mutate();
   }
 
   async function toggleActive(row) {
-    await fetch(`/api/payments/${row._id}`, {
+    await timedFetch(`/api/payments/${row._id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ active: !row.active }),
     });
+    mutate();
+  }
+
+  async function handleDelete(id) {
+    if (!confirm("Delete this payment record? This cannot be undone.")) return;
+    await timedFetch(`/api/payments/${id}`, { method: "DELETE" });
     mutate();
   }
 
@@ -97,6 +131,23 @@ export default function PaymentsPage() {
       key: "createdAt",
       label: "Date",
       render: (row) => new Date(row.createdAt).toLocaleString(),
+    },
+    {
+      key: "actions",
+      label: "Actions",
+      render: (row) => (
+        <div className="flex items-center gap-3">
+          <button onClick={() => setViewing(row)} className="text-ink-500 hover:text-ink-800" title="View">
+            <MdVisibility size={18} />
+          </button>
+          <button onClick={() => openEditModal(row)} className="text-primary-600 hover:text-primary-800" title="Edit">
+            <MdEdit size={18} />
+          </button>
+          <button onClick={() => handleDelete(row._id)} className="text-red-500 hover:text-red-700" title="Delete">
+            <MdDelete size={18} />
+          </button>
+        </div>
+      ),
     },
   ];
 
@@ -139,7 +190,7 @@ export default function PaymentsPage() {
               <option value="refunded">Refunded</option>
             </select>
           </div>
-          <button onClick={() => setModalOpen(true)} className="btn-primary whitespace-nowrap">
+          <button onClick={openCreateModal} className="btn-primary whitespace-nowrap">
             <MdAdd size={18} /> Add Payment
           </button>
         </div>
@@ -154,7 +205,8 @@ export default function PaymentsPage() {
         />
       </div>
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Add Payment Record">
+      {/* Create / Edit modal */}
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editingId ? "Edit Payment" : "Add Payment Record"}>
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
             <div className="rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-2">
@@ -199,9 +251,41 @@ export default function PaymentsPage() {
           </label>
 
           <button type="submit" disabled={saving} className="btn-primary w-full">
-            {saving ? "Saving..." : "Save Payment"}
+            {saving ? "Saving..." : editingId ? "Save Changes" : "Save Payment"}
           </button>
         </form>
+      </Modal>
+
+      {/* View modal */}
+      <Modal open={Boolean(viewing)} onClose={() => setViewing(null)} title="Payment Details">
+        {viewing && (
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <p className="text-ink-400 text-xs uppercase font-medium">Transaction ID</p>
+              <p className="text-ink-800">{viewing.transactionId}</p>
+            </div>
+            <div>
+              <p className="text-ink-400 text-xs uppercase font-medium">User</p>
+              <p className="text-ink-800">{viewing.user}</p>
+            </div>
+            <div>
+              <p className="text-ink-400 text-xs uppercase font-medium">Amount</p>
+              <p className="text-ink-800">{viewing.currency || "USD"} {Number(viewing.amount).toLocaleString()}</p>
+            </div>
+            <div>
+              <p className="text-ink-400 text-xs uppercase font-medium">Status</p>
+              <StatusBadge value={viewing.status} />
+            </div>
+            <div>
+              <p className="text-ink-400 text-xs uppercase font-medium">Active</p>
+              <StatusBadge value={viewing.active ? "active" : "inactive"} />
+            </div>
+            <div>
+              <p className="text-ink-400 text-xs uppercase font-medium">Date</p>
+              <p className="text-ink-800">{new Date(viewing.createdAt).toLocaleString()}</p>
+            </div>
+          </div>
+        )}
       </Modal>
     </DashboardLayout>
   );

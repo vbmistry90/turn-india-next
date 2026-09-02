@@ -3,6 +3,7 @@ import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { MdEco } from "react-icons/md";
+import { timedFetch } from "@/lib/apiClient";
 
 export default function Register() {
   const router = useRouter();
@@ -28,7 +29,7 @@ export default function Register() {
 
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/register", {
+      const res = await timedFetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -56,13 +57,13 @@ export default function Register() {
   return (
     <>
       <Head>
-        <title>Register · Turn-India Admin</title>
+        <title>Register · TurnIndia</title>
       </Head>
       <div className="min-h-screen bg-ink-50 flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           <div className="flex items-center justify-center gap-2 mb-6 text-ink-800">
             <MdEco size={28} className="text-primary-600" />
-            <span className="text-xl font-semibold">Turn-India Admin</span>
+            <span className="text-xl font-semibold">TurnIndia Admin</span>
           </div>
 
           <div className="card">

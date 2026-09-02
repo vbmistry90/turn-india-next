@@ -28,15 +28,25 @@ export default async function handler(req, res) {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    // The very first account created on a fresh install becomes an admin
+    // automatically — otherwise nobody would exist who could grant admin
+    // access to anyone else.
+    const userCount = await User.countDocuments();
+    const role = userCount === 0 ? "admin" : "editor";
+
     const user = await User.create({
       name,
       email: email.toLowerCase(),
       password: hashedPassword,
+      role,
     });
 
     return res.status(201).json({
       success: true,
-      message: "Account created successfully. Please log in.",
+      message:
+        role === "admin"
+          ? "Account created as the first administrator. Please log in."
+          : "Account created successfully. Please log in.",
       user: { id: user._id, name: user.name, email: user.email, role: user.role },
     });
   } catch (error) {

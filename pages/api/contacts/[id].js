@@ -14,12 +14,16 @@ async function handler(req, res) {
 
   if (req.method === "PATCH" || req.method === "PUT") {
     try {
-      const { status } = req.body;
-      const contact = await Contact.findByIdAndUpdate(
-        id,
-        { status },
-        { new: true, runValidators: true }
-      );
+      const { name, email, phone, subject, message, status } = req.body;
+      const updates = {};
+      if (name !== undefined) updates.name = name;
+      if (email !== undefined) updates.email = email;
+      if (phone !== undefined) updates.phone = phone;
+      if (subject !== undefined) updates.subject = subject;
+      if (message !== undefined) updates.message = message;
+      if (status !== undefined) updates.status = status;
+
+      const contact = await Contact.findByIdAndUpdate(id, updates, { new: true, runValidators: true });
       if (!contact) return res.status(404).json({ success: false, message: "Inquiry not found" });
       return res.status(200).json({ success: true, data: contact });
     } catch (error) {

@@ -4,15 +4,16 @@ import DashboardLayout from "@/components/DashboardLayout";
 import PaginatedTable from "@/components/PaginatedTable";
 import StatusBadge from "@/components/StatusBadge";
 import Modal from "@/components/Modal";
-import { MdAdd, MdDelete, MdSearch, MdOutlineCloudUpload } from "react-icons/md";
+import { MdAdd, MdDelete, MdSearch, MdOutlineCloudUpload, MdEdit, MdVisibility } from "react-icons/md";
+import { timedFetcher, timedFetch } from "@/lib/apiClient";
 
-const fetcher = (url) => fetch(url, { credentials: "include" }).then((r) => r.json());
+const fetcher = timedFetcher;
 
-// const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-// const UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+const UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
-const CLOUD_NAME = 'to5mtmpw';
-const UPLOAD_PRESET = 'TurnIndia';
+// const CLOUD_NAME = 'to5mtmpw';
+// const UPLOAD_PRESET = 'TurnIndia';
 
 const emptyForm = {
   name: "",
@@ -27,6 +28,8 @@ export default function VideosPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState(null); // null = create mode
+  const [viewing, setViewing] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [file, setFile] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -42,6 +45,29 @@ export default function VideosPage() {
   function handleFormChange(e) {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+  }
+
+  function openCreateModal() {
+    setEditingId(null);
+    setForm(emptyForm);
+    setFile(null);
+    setError("");
+    setModalOpen(true);
+  }
+
+  function openEditModal(row) {
+    setEditingId(row._id);
+    setForm({
+      name: row.name,
+      category: row.category,
+      description: row.description || "",
+      author: row.author,
+      status: row.status,
+      priority: row.priority,
+    });
+    setFile(null);
+    setError("");
+    setModalOpen(true);
   }
 
   function uploadToCloudinary(fileToUpload) {
@@ -79,7 +105,7 @@ export default function VideosPage() {
     e.preventDefault();
     setError("");
 
-    if (!file) {
+    if (!editingId && !file) {
       setError("Please select a video file to upload");
       return;
     }
@@ -90,16 +116,21 @@ export default function VideosPage() {
 
     setUploading(true);
     try {
-      const cloudinaryResult = await uploadToCloudinary(file);
+      let payload = { ...form };
 
-      const res = await fetch("/api/videos", {
-        method: "POST",
+      if (file) {
+        const cloudinaryResult = await uploadToCloudinary(file);
+        payload.url = cloudinaryResult.secure_url;
+        payload.publicId = cloudinaryResult.public_id;
+      }
+
+      const url = editingId ? `/api/videos/${editingId}` : "/api/videos";
+      const method = editingId ? "PATCH" : "POST";
+
+      const res = await timedFetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...form,
-          url: cloudinaryResult.secure_url,
-          publicId: cloudinaryResult.public_id,
-        }),
+        body: JSON.stringify(payload),
       });
       const result = await res.json();
 
@@ -114,6 +145,7 @@ export default function VideosPage() {
       setFile(null);
       setUploadProgress(0);
       setUploading(false);
+      setEditingId(null);
       mutate();
     } catch (err) {
       setError(err.message || "Upload failed");
@@ -123,7 +155,7 @@ export default function VideosPage() {
 
   async function handleDelete(id) {
     if (!confirm("Delete this video? This cannot be undone.")) return;
-    await fetch(`/api/videos/${id}`, { method: "DELETE" });
+    await timedFetch(`/api/videos/${id}`, { method: "DELETE" });
     mutate();
   }
 
@@ -147,21 +179,20 @@ export default function VideosPage() {
       render: (row) => new Date(row.createdAt).toLocaleDateString(),
     },
     {
-      key: "url",
-      label: "Preview",
-      render: (row) => (
-        <a href={row.url} target="_blank" rel="noreferrer" className="text-primary-600 hover:underline">
-          View
-        </a>
-      ),
-    },
-    {
       key: "actions",
-      label: "",
+      label: "Actions",
       render: (row) => (
-        <button onClick={() => handleDelete(row._id)} className="text-red-500 hover:text-red-700">
-          <MdDelete size={18} />
-        </button>
+        <div className="flex items-center gap-3">
+          <button onClick={() => setViewing(row)} className="text-ink-500 hover:text-ink-800" title="View">
+            <MdVisibility size={18} />
+          </button>
+          <button onClick={() => openEditModal(row)} className="text-primary-600 hover:text-primary-800" title="Edit">
+            <MdEdit size={18} />
+          </button>
+          <button onClick={() => handleDelete(row._id)} className="text-red-500 hover:text-red-700" title="Delete">
+            <MdDelete size={18} />
+          </button>
+        </div>
       ),
     },
   ];
@@ -182,7 +213,7 @@ export default function VideosPage() {
               }}
             />
           </div>
-          <button onClick={() => setModalOpen(true)} className="btn-primary">
+          <button onClick={openCreateModal} className="btn-primary">
             <MdAdd size={18} /> Upload Video
           </button>
         </div>
@@ -197,7 +228,8 @@ export default function VideosPage() {
         />
       </div>
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Upload Project Video">
+      {/* Create / Edit modal */}
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editingId ? "Edit Video" : "Upload Project Video"}>
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
             <div className="rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-2">
@@ -206,10 +238,12 @@ export default function VideosPage() {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-ink-700 mb-1">Video file</label>
+            <label className="block text-sm font-medium text-ink-700 mb-1">
+              Video file {editingId && <span className="text-ink-400 font-normal">(leave empty to keep current video)</span>}
+            </label>
             <label className="flex items-center gap-2 border-2 border-dashed border-ink-200 rounded-lg px-3 py-4 cursor-pointer hover:border-primary-400 text-sm text-ink-500">
               <MdOutlineCloudUpload size={20} />
-              {file ? file.name : "Click to select a video file"}
+              {file ? file.name : editingId ? "Click to replace video file" : "Click to select a video file"}
               <input
                 type="file"
                 accept="video/*"
@@ -268,9 +302,50 @@ export default function VideosPage() {
           </div>
 
           <button type="submit" disabled={uploading} className="btn-primary w-full">
-            {uploading ? `Uploading... ${uploadProgress}%` : "Upload & Save"}
+            {uploading ? `Saving... ${uploadProgress > 0 ? uploadProgress + "%" : ""}` : editingId ? "Save Changes" : "Upload & Save"}
           </button>
         </form>
+      </Modal>
+
+      {/* View modal */}
+      <Modal open={Boolean(viewing)} onClose={() => setViewing(null)} title="Video Details">
+        {viewing && (
+          <div className="space-y-3 text-sm">
+            <video controls className="w-full rounded-lg bg-black max-h-64" src={viewing.url} />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-ink-400 text-xs uppercase font-medium">Name</p>
+                <p className="text-ink-800">{viewing.name}</p>
+              </div>
+              <div>
+                <p className="text-ink-400 text-xs uppercase font-medium">Category</p>
+                <p className="text-ink-800">{viewing.category}</p>
+              </div>
+              <div>
+                <p className="text-ink-400 text-xs uppercase font-medium">Author</p>
+                <p className="text-ink-800">{viewing.author}</p>
+              </div>
+              <div>
+                <p className="text-ink-400 text-xs uppercase font-medium">Uploaded</p>
+                <p className="text-ink-800">{new Date(viewing.createdAt).toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-ink-400 text-xs uppercase font-medium">Status</p>
+                <StatusBadge value={viewing.status} />
+              </div>
+              <div>
+                <p className="text-ink-400 text-xs uppercase font-medium">Priority</p>
+                <StatusBadge value={viewing.priority} />
+              </div>
+            </div>
+            {viewing.description && (
+              <div>
+                <p className="text-ink-400 text-xs uppercase font-medium">Description</p>
+                <p className="text-ink-700 whitespace-pre-wrap">{viewing.description}</p>
+              </div>
+            )}
+          </div>
+        )}
       </Modal>
     </DashboardLayout>
   );
