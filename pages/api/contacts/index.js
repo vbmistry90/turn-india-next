@@ -2,8 +2,24 @@ import dbConnect from "@/lib/mongodb";
 import Contact from "@/models/Contact";
 import { getUserFromReq } from "@/lib/auth";
 
+const ALLOWED_ORIGINS = (process.env.PUBLIC_SITE_ORIGINS || "*")
+  .split(",")
+  .map((o) => o.trim());
+
+function setCorsHeaders(req, res) {
+  const origin = req.headers.origin;
+  if (ALLOWED_ORIGINS.includes("*")) {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+  } else if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  }
+  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+}
+
 export default async function handler(req, res) {
   await dbConnect();
+  await setCorsHeaders(req, res);
 
   // POST is public — anyone visiting the contact/inquiry form can submit.
   if (req.method === "POST") {
