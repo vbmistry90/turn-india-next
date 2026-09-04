@@ -18,12 +18,11 @@ function setCorsHeaders(req, res) {
 }
 
 export default async function handler(req, res) {
-  await dbConnect();
-  await setCorsHeaders(req, res);
-
+  setCorsHeaders(req, res);
   // POST is public — anyone visiting the contact/inquiry form can submit.
   if (req.method === "POST") {
     try {
+      await dbConnect();
       const { name, email, phone, subject, message } = req.body;
 
       if (!name || !email || !message) {
